@@ -130,12 +130,12 @@ class PhpMinify
 
     /**
      * Minify the code
-     * @param string $string
+     * @param string $filename
      * @return string
      */
-    public function minify($string)
+    public function minify($filename)
     {
-        $string = php_strip_whitespace($string);
+        $string = php_strip_whitespace($filename);
         if ($this->getBanner()) {
             $string = preg_replace('/^<\?php/', '<?php ' . $this->getBanner(), $string);
         }
