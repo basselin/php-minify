@@ -8,14 +8,14 @@
 class PhpMinify
 {
     /**
-     * Defaults options
+     * Default options
      * @var array
      */
     protected $options = array(
         'source'     => 'module/', // string
-        'target'     => 'modulin/', // string
+        'target'     => 'modulemin/', // string
         'banner'     => '', // string
-        'extensions' => array('php', 'phtml'), // string[]
+        'extensions' => array('inc', 'php', 'phtml'), // string[]
         'exclusions' => array('md'), // string[]
     );
 
@@ -69,7 +69,7 @@ class PhpMinify
     }
 
     /**
-     * Banner comment for each files compressed
+     * Banner comment for each file compressed
      * @return string
      */
     public function getBanner()
@@ -78,7 +78,7 @@ class PhpMinify
     }
 
     /**
-     * Banner comment for each files compressed
+     * Banner comment for each file compressed
      * @param string $banner Eg: '/* (c) My Name *\/'
      * @return PhpMinify
      */
@@ -151,7 +151,7 @@ class PhpMinify
         $return = array();
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->getSource()), RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $key => $value) {
-            if ($value->isLink() || in_array($value->getFilename(), array('..', '.DS_Store'))) { // Exclude
+            if (in_array($value->getFilename(), array('..', '.DS_Store'))) { // Exclude system
                 continue;
             }
 
