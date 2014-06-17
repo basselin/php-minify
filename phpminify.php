@@ -34,7 +34,7 @@ class PhpMinify
      */
     public function getSource()
     {
-        return $this->options['source'];
+        return $this->fixSlashes($this->options['source']);
     }
     
     /**
@@ -54,7 +54,7 @@ class PhpMinify
      */
     public function getTarget()
     {
-        return $this->options['target'];
+        return $this->fixSlashes($this->options['target']);
     }
 
     /**
@@ -143,19 +143,35 @@ class PhpMinify
     }
 
     /**
+     * For Windows
+     * @param string $filename
+     * @return string
+     */
+    public function fixSlashes($filename)
+    {
+        if (DIRECTORY_SEPARATOR == '\\') {
+            return str_replace('\\', '/', $filename);
+        }
+        return $filename;
+    }
+
+    /**
      * Run the job
      * @return array
      */
     public function run()
     {
         $return = array();
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->getSource()), RecursiveIteratorIterator::CHILD_FIRST);
+        $dirIterator = new RecursiveDirectoryIterator($this->getSource());
+        $iterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $key => $value) {
             if (in_array($value->getFilename(), array('..', '.DS_Store'))) { // Exclude system
                 continue;
             }
 
-            $targetPathname = preg_replace('/^' . preg_quote($this->getSource(), '/') . '/', $this->getTarget(), $value->getPathname());
+            $pattern = '/^' . preg_quote($this->getSource(), '/') . '/';
+            $sourcePathname = $this->fixSlashes($value->getPathname());
+            $targetPathname = preg_replace($pattern, $this->getTarget(), $sourcePathname);
             if ($value->isDir()) {
                 if ($value->getBasename() == '.') {
                     $dirname = dirname($targetPathname);
@@ -168,11 +184,11 @@ class PhpMinify
             }
             if ($value->isFile() && !in_array(strtolower($value->getExtension()), $this->getExclusions())) {
                 if (in_array(strtolower($value->getExtension()), $this->getExtensions())) {
-                    file_put_contents($targetPathname, $this->minify($value->getPathname()));
+                    file_put_contents($targetPathname, $this->minify($sourcePathname));
                 } else {
-                    copy($value->getPathname(), $targetPathname);
+                    copy($sourcePathname, $targetPathname);
                 }
-                $return[$value->getPathname()] = $targetPathname;
+                $return[$sourcePathname] = $targetPathname;
             }
         } // for
         return $return;
