@@ -149,8 +149,8 @@ class PhpMinify
      */
     public function fixSlashes($filename)
     {
-        if (DIRECTORY_SEPARATOR == '\\') {
-            return str_replace('\\', '/', $filename);
+        if (DIRECTORY_SEPARATOR != '/') {
+            return str_replace(DIRECTORY_SEPARATOR, '/', $filename);
         }
         return $filename;
     }
