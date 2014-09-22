@@ -176,7 +176,7 @@ class PhpMinify
                 if ($value->getBasename() == '.') {
                     $dirname = dirname($targetPathname);
                     if (!is_dir($dirname)) {
-                        mkdir($dirname);
+                        mkdir($dirname, 0777, true);
                     }
                     $return[$value->getPath()] = $dirname;
                 }
