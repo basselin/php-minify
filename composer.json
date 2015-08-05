@@ -1,0 +1,22 @@
+{
+    "name": "basselin/php-minify",
+    "description": "PhpMinify is a little tool to minify your application php like the javascript minify tools.",
+    "version": "0.2.2",
+    "keywords": ["minify", "php_strip_whitespace"],
+    "homepage": "https://github.com/basselin/php-minify",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Benoit Asselin",
+            "email": "contact@161.io",
+            "homepage": "http://161.io"
+        }
+    ],
+    "require": {
+        "php": ">=5.1"
+    },
+    "autoload": {
+        "classmap": ["phpminify.php"]
+    }
+}
