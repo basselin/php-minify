@@ -1,7 +1,7 @@
 <?php
 /**
  * @link      https://github.com/basselin/php-minify
- * @copyright (c) 2014, Benoit Asselin contact(at)ab-d.fr
+ * @copyright (c) 2014, Benoit Asselin contact(at)161.io
  * @license   MIT Licence
  */
 
@@ -9,6 +9,7 @@ class PhpMinify
 {
     /**
      * Default options
+     *
      * @var array
      */
     protected $options = array(
@@ -21,6 +22,7 @@ class PhpMinify
 
     /**
      * Constructor
+     *
      * @param array $options
      */
     public function __construct(array $options = array())
@@ -30,16 +32,18 @@ class PhpMinify
 
     /**
      * Source directory
+     *
      * @return string
      */
     public function getSource()
     {
         return $this->fixSlashes($this->options['source']);
     }
-    
+
     /**
      * Source directory
-     * @param string $source
+     *
+     * @param  string $source
      * @return PhpMinify
      */
     public function setSource($source)
@@ -59,7 +63,8 @@ class PhpMinify
 
     /**
      * Target directory
-     * @param string $target
+     *
+     * @param  string $target
      * @return PhpMinify
      */
     public function setTarget($target)
@@ -70,6 +75,7 @@ class PhpMinify
 
     /**
      * Banner comment for each file compressed
+     *
      * @return string
      */
     public function getBanner()
@@ -79,7 +85,8 @@ class PhpMinify
 
     /**
      * Banner comment for each file compressed
-     * @param string $banner Eg: '/* (c) My Name *\/'
+     *
+     * @param  string $banner Eg: '/* (c) My Name *\/'
      * @return PhpMinify
      */
     public function setBanner($banner)
@@ -90,6 +97,7 @@ class PhpMinify
 
     /**
      * Extensions to minify
+     *
      * @return array
      */
     public function getExtensions()
@@ -99,7 +107,8 @@ class PhpMinify
 
     /**
      * Extensions to minify
-     * @param array $extensions
+     *
+     * @param  array $extensions
      * @return PhpMinify
      */
     public function setExtensions(array $extensions)
@@ -110,6 +119,7 @@ class PhpMinify
 
     /**
      * Exclusions to copy
+     *
      * @return array
      */
     public function getExclusions()
@@ -119,7 +129,8 @@ class PhpMinify
 
     /**
      * Exclusions to copy
-     * @param array $extensions
+     *
+     * @param  array $extensions
      * @return PhpMinify
      */
     public function setExclusions(array $extensions)
@@ -130,7 +141,8 @@ class PhpMinify
 
     /**
      * Minify the code
-     * @param string $filename
+     *
+     * @param  string $filename
      * @return string
      */
     public function minify($filename)
@@ -144,7 +156,8 @@ class PhpMinify
 
     /**
      * For Windows
-     * @param string $filename
+     *
+     * @param  string $filename
      * @return string
      */
     public function fixSlashes($filename)
@@ -157,13 +170,15 @@ class PhpMinify
 
     /**
      * Run the job
+     *
      * @return array
+     * @throws RuntimeException
      */
     public function run()
     {
         $return = array();
-        $dirIterator = new RecursiveDirectoryIterator($this->getSource());
-        $iterator = new RecursiveIteratorIterator($dirIterator, RecursiveIteratorIterator::CHILD_FIRST);
+        $dirIterator = new \RecursiveDirectoryIterator($this->getSource());
+        $iterator = new \RecursiveIteratorIterator($dirIterator, \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $key => $value) {
             if (in_array($value->getFilename(), array('..', '.DS_Store'))) { // Exclude system
                 continue;
@@ -176,7 +191,12 @@ class PhpMinify
                 if ($value->getBasename() == '.') {
                     $dirname = dirname($targetPathname);
                     if (!is_dir($dirname)) {
-                        mkdir($dirname, 0777, true);
+                        $this->errorStart();
+                        $res = mkdir($dirname, 0777, true);
+                        $this->errorStop();
+                        if (!$res) {
+                            throw new \RuntimeException("mkdir('{$dirname}') failed", 0, $this->getLastError());
+                        }
                     }
                     $return[$value->getPath()] = $dirname;
                 }
@@ -184,13 +204,70 @@ class PhpMinify
             }
             if ($value->isFile() && !in_array(strtolower($value->getExtension()), $this->getExclusions())) {
                 if (in_array(strtolower($value->getExtension()), $this->getExtensions())) {
-                    file_put_contents($targetPathname, $this->minify($sourcePathname));
+                    $this->errorStart();
+                    $res = file_put_contents($targetPathname, $this->minify($sourcePathname));
+                    $this->errorStop();
+                    if (false === $res) {
+                        throw new \RuntimeException("file_put_contents('{$targetPathname}', '...') failed", 0, $this->getLastError());
+                    }
                 } else {
-                    copy($sourcePathname, $targetPathname);
+                    $this->errorStart();
+                    $res = copy($sourcePathname, $targetPathname);
+                    $this->errorStop();
+                    if (!$res) {
+                        throw new \RuntimeException("copy('{$sourcePathname}', '{$targetPathname}') failed", 0, $this->getLastError());
+                    }
                 }
                 $return[$sourcePathname] = $targetPathname;
             }
         } // for
         return $return;
+    }
+
+
+
+    /**
+     * @var \ErrorException
+     */
+    protected $lastError;
+
+    /**
+     * Add an error to the stack
+     *
+     * @param int    $errno
+     * @param string $errstr
+     * @param string $errfile
+     * @param int    $errline
+     * @return void
+     */
+    public function addError($errno, $errstr = '', $errfile = '', $errline = 0)
+    {
+        $this->lastError = new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+    }
+
+    /**
+     * @return \ErrorException
+     */
+    public function getLastError()
+    {
+        return $this->lastError;
+    }
+
+    /**
+     * Starting the error handler
+     *
+     * @param int $errorLevel
+     */
+    public function errorStart($errorLevel = \E_WARNING)
+    {
+        set_error_handler(array($this, 'addError'), $errorLevel);
+    }
+
+    /**
+     * Stopping the error handler
+     */
+    public function errorStop()
+    {
+        restore_error_handler();
     }
 }
